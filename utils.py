@@ -16,10 +16,10 @@ def predict(model, feature_extractor, image):
     logits = logits.detach().numpy()
     return logits
 
-def numpyToPIL(image):
+def numpyToPil(image):
     return Image.fromarray(image)
 
-def PILToNumpy(image):
+def pilToNumpy(image):
     return np.array(image)
 
 def resizeImage(image, size):
