@@ -32,3 +32,77 @@ class SegmentDocument:
         size = (self.image.size[0], self.image.size[1])
         pred = self.resizeImage(pred, size)
         return pred
+
+    def float32ToUint8(self, image):
+        return np.clip(image, 0, 255).astype(np.uint8)
+
+
+class GetDocument:
+    def __init__(self, mask_img, image):
+        self.mask_img = mask_img
+        self.image = image
+
+    def __threshold(self):
+        ret, thresh = cv2.threshold(self.mask_img, 2, 255, 0)
+        return thresh
+    
+    def __getContours(self, thresh):
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        return contours
+    
+    def __getBiggestContour(self, contours):
+        biggest = None
+        max_area = 0
+        for i in contours:
+            area = cv2.contourArea(i)
+            if area > 5000:
+                peri = cv2.arcLength(i, True)
+                approx = cv2.approxPolyDP(i, 0.02 * peri, True)
+                if area > max_area and len(approx) == 4:
+                    biggest = approx
+                    max_area = area
+        return biggest
+    
+    def getPoints(self):
+        thresh = self.__threshold()
+        contours = self.__getContours(thresh)
+        biggest = self.__getBiggestContour(contours)
+        # reshape biggest 4, 2
+        biggest = biggest.reshape((4, 2))
+
+        pt1, pt2, pt3, pt4 = tuple(biggest)
+        pts1 = np.array([pt1, pt4, pt3, pt2], np.float32)
+
+        size = self.mask_img.shape
+        h, w = size[:2]
+
+        pts1 = np.float32(pts1)
+        pts2 = np.float32([[0,0],[w,0],[w,h],[0,h]])
+
+       
+
+        return pts1, pts2
+
+    def transform(self, img, inv=False):
+        """
+        Transform the image to the desired shape
+
+        Args:
+            img (np.array): image to be transformed
+            shape (tuple): desired shape
+        Returns:
+            dst (np.array): transformed image
+        
+        """
+        pts1, pts2 = self.getPoints()
+
+        h, w = img.shape[:2]
+
+        if inv:
+            M = cv2.getPerspectiveTransform(pts2, pts1)
+        else:
+            M = cv2.getPerspectiveTransform(pts1, pts2)
+        
+        dst = cv2.warpPerspective(img, M, (w, h))
+
+        return dst
