@@ -1,6 +1,7 @@
 from transformers import SegformerFeatureExtractor, SegformerForSemanticSegmentation
 from PIL import Image
 import numpy as np
+import cv2
 
 def load_model():
     feature_extractor = SegformerFeatureExtractor.from_pretrained("nvidia/segformer-b0-finetuned-ade-512-512")
@@ -20,3 +21,7 @@ def numpyToPIL(image):
 
 def PILToNumpy(image):
     return np.array(image)
+
+def resizeImage(image, size):
+    return cv2.resize(image, size)
+    
